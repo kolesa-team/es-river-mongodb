@@ -1,0 +1,6 @@
+.DS_Store
+.idea
+*.iml
+.go/
+data/config-dev.cfg
+out/*

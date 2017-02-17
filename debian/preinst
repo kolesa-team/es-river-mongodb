@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  install)
+    adduser --system --no-create-home --group river
+    mkdir -p /run/river
+    chown -R river: /run/river
+    ;;
+
+  upgrade)
+    ;;
+
+  abort-upgrade)
+    ;;
+
+  *)
+    echo "preinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+exit 0

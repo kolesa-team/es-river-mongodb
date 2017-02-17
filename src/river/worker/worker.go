@@ -80,7 +80,7 @@ func (w *Worker) ListenOplog() {
 		GetSession().
 		DB("local").
 		C("oplog.rs").
-		Find(nil).
+		Find(bson.M{"fromMigrate": bson.M{"$exists": false}}).
 		Tail(-1)
 
 	for iterator.Next(&oplog) {

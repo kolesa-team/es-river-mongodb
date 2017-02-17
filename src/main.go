@@ -24,7 +24,7 @@ func main() {
 
 	app.Name = "river"
 	app.Usage = "Indexes MongoDB to Elasticsearch"
-	app.Version = "0.0.1"
+	app.Version = "0.0.2"
 	app.Author = "Igor Borodikhin"
 	app.Email = "iborodikhin@gmail.com"
 	app.Action = actionRun

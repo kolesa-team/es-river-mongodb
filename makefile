@@ -17,9 +17,6 @@ dep-install:
 	go get labix.org/v2/mgo
 	go get gopkg.in/olivere/elastic.v5
 
-git-magic:
-	git submodule update --init --remote --recursive
-
 fmt:
 	gofmt -s=true -w $(CURDIR)/src
 

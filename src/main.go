@@ -22,9 +22,9 @@ var (
 func main() {
 	app := cli.NewApp()
 
-	app.Name = "river"
+	app.Name = "es-river-mongodb"
 	app.Usage = "Indexes MongoDB to Elasticsearch"
-	app.Version = "0.0.2"
+	app.Version = "0.0.3"
 	app.Author = "Igor Borodikhin"
 	app.Email = "iborodikhin@gmail.com"
 	app.Action = actionRun
@@ -39,12 +39,12 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "config, c",
-			Value: "/etc/mongo-to-rabbit/config.cfg",
+			Value: "/etc/es-river-mongodb/config.cfg",
 			Usage: "Path to the configuration file",
 		},
 		cli.StringFlag{
 			Name:  "pid, p",
-			Value: "/var/run/mongo-to-rabbit.pid",
+			Value: "/var/run/es-river-mongodb.pid",
 			Usage: "Path to the file where PID will be stored",
 		},
 	}

@@ -1,6 +1,6 @@
 export GOPATH=$(CURDIR)/.go
 
-APP_NAME = river
+APP_NAME = es-river-mongodb
 DEBIAN_TMP = $(CURDIR)/deb
 VERSION = `$(CURDIR)/out/$(APP_NAME) -v | cut -d ' ' -f 3`
 

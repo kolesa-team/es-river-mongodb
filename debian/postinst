@@ -6,7 +6,7 @@ case "$1" in
     # For systemd, enable the nginx unit, but don't start it (just like the
     # init script).
     if [ -x /bin/systemctl ]; then
-      systemctl enable river.service >/dev/null 2>&1 || true
+      systemctl enable es-river-mongodb.service >/dev/null 2>&1 || true
     fi
     ;;
 
@@ -20,11 +20,11 @@ case "$1" in
 esac
 
 # Automatically added by dh_installinit
-if [ -x "/etc/init.d/river" ] || [ -e "/etc/river/config.cfg" ]; then
+if [ -x "/etc/init.d/es-river-mongodb" ] || [ -e "/etc/es-river-mongodb/config.cfg" ]; then
         if [ ! -e "/etc/init/river.conf" ]; then
                 update-rc.d river defaults 16 80 >/dev/null
         fi
-        invoke-rc.d river start || exit $?
+        invoke-rc.d es-river-mongodb start || exit $?
 fi
 # End automatically added section
 

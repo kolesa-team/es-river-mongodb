@@ -3,9 +3,9 @@ set -e
 
 case "$1" in
   install)
-    adduser --system --no-create-home --group river
-    mkdir -p /run/river
-    chown -R river: /run/river
+    adduser --system --no-create-home --group es-river-mongodb
+    mkdir -p /run/es-river-mongodb
+    chown -R es-river-mongodb: /run/es-river-mongodb
     ;;
 
   upgrade)

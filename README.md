@@ -1,7 +1,7 @@
-Индексатор MongoDB в Elasticsearch 5.x
-======================================
+MongoDB indexing service for Elasticsearch 5.x
+==============================================
 
-## Конфигурация
+## Configuration
 
     [graylog]
     addr = 10.20.255.9:12207

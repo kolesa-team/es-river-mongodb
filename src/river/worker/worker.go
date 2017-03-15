@@ -60,7 +60,8 @@ func (w *Worker) InitialImport() {
 			"record": record,
 		}).Debug("Got collection record")
 
-		record["_id"] = record["_id"].(bson.ObjectId).String()
+
+		record["_id"] = w.objectIdString(record["_id"])
 
 		if err := w.elastic.Insert(record); err != nil {
 			logger.Instance().WithFields(log.Fields{
@@ -113,7 +114,7 @@ func (w *Worker) processOplog(oplog schema.Oplog) error {
 
 	switch oplog.Operation {
 	case OP_INSERT:
-		oplog.Object["_id"] = oplog.Object["_id"].(bson.ObjectId).String()
+		oplog.Object["_id"] = w.objectIdString(oplog.Object["_id"])
 
 		logger.Instance().WithFields(log.Fields{
 			"id": oplog.Object["_id"],
@@ -121,7 +122,7 @@ func (w *Worker) processOplog(oplog schema.Oplog) error {
 
 		return w.elastic.Insert(oplog.Object)
 	case OP_UPDATE:
-		oplog.QueryObject["_id"] = oplog.QueryObject["_id"].(bson.ObjectId).String()
+		oplog.QueryObject["_id"] = w.objectIdString(oplog.QueryObject["_id"])
 
 		logger.Instance().WithFields(log.Fields{
 			"id": oplog.QueryObject["_id"].(string),
@@ -129,7 +130,7 @@ func (w *Worker) processOplog(oplog schema.Oplog) error {
 
 		return w.elastic.Update(oplog.QueryObject["_id"].(string), oplog.Object)
 	case OP_DELETE:
-		oplog.QueryObject["_id"] = oplog.QueryObject["_id"].(bson.ObjectId).String()
+		oplog.QueryObject["_id"] = w.objectIdString(oplog.QueryObject["_id"])
 
 		logger.Instance().WithFields(log.Fields{
 			"id": oplog.Object["_id"].(string),
@@ -141,4 +142,14 @@ func (w *Worker) processOplog(oplog schema.Oplog) error {
 	}
 
 	return fmt.Errorf("Unknown error occurred")
+}
+
+// Converts mongodb objectId to string
+func (w *Worker) objectIdString(id interface{}) string {
+	switch id.(type) {
+	default:
+		return id.(bson.ObjectId).String()
+	case string:
+		return bson.ObjectIdHex(id.(string)).String()
+	}
 }

@@ -69,12 +69,16 @@ func (w *Worker) InitialImport() {
 			}).Debug("An error occurred while indexing MongoDB collection record")
 		}
 	}
+
+	logger.Instance().Info("Initial import complete")
 }
 
 func (w *Worker) ListenOplog() {
 	var (
 		oplog schema.Oplog
 	)
+
+	logger.Instance().Info("Listening for MongoDB oplog.rs")
 
 	iterator := w.mongo.
 		GetSession().

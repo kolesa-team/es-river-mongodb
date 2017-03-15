@@ -114,10 +114,9 @@ func runDaemon(pidfile string) {
 
 	skipInitImport, err := config.Instance().Bool("river", "skip_initial_import")
 	if err != nil || skipInitImport == false {
-		worker.InitialImport()
+		go worker.InitialImport()
 	}
 
-	logger.Instance().Info("Initial import complete, listening for MongoDB oplog.rs")
 	worker.ListenOplog()
 
 	done <- struct{}{}

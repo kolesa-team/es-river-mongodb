@@ -9,7 +9,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/endeveit/go-snippets/cli"
 	"github.com/endeveit/go-snippets/config"
-	"golang.org/x/net/context"
 	"gopkg.in/olivere/elastic.v2"
 )
 
@@ -48,7 +47,7 @@ func NewElastic() *Elastic {
 	e.client, err = elastic.NewClient(elastic.SetURL(strings.Split(elasticUrl, ";")...))
 	cli.CheckFatalError(err)
 
-	_, err = e.client.IndexExists(e.indexName).Do(context.Background())
+	_, err = e.client.IndexExists(e.indexName).Do()
 	cli.CheckFatalError(err)
 
 	return &e
@@ -69,7 +68,7 @@ func (e *Elastic) Insert(data map[string]interface{}) error {
 		Type(e.recordType).
 		Id(id).
 		BodyString(string(body)).
-		Do(context.Background())
+		Do()
 	if err != nil {
 		return err
 	}
@@ -96,7 +95,7 @@ func (e *Elastic) Update(id string, data map[string]interface{}) error {
 		Type(e.recordType).
 		Id(id).
 		BodyString(string(body)).
-		Do(context.Background())
+		Do()
 	if err != nil {
 		return err
 	}
@@ -117,7 +116,7 @@ func (e *Elastic) Remove(id string) error {
 		Index(e.indexName).
 		Type(e.recordType).
 		Id(id).
-		Do(context.Background())
+		Do()
 	if err != nil {
 		return err
 	}

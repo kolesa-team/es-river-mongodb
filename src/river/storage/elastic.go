@@ -10,7 +10,7 @@ import (
 	"github.com/endeveit/go-snippets/cli"
 	"github.com/endeveit/go-snippets/config"
 	"golang.org/x/net/context"
-	"gopkg.in/olivere/elastic.v5"
+	"gopkg.in/olivere/elastic.v2"
 )
 
 const (

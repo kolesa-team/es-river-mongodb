@@ -148,8 +148,10 @@ func (w *Worker) processOplog(oplog schema.Oplog) error {
 func (w *Worker) objectIdString(id interface{}) string {
 	switch id.(type) {
 	default:
-		return id.(bson.ObjectId).String()
+		return id.(bson.ObjectId).Hex()
 	case string:
-		return bson.ObjectIdHex(id.(string)).String()
+		objectId := bson.ObjectIdHex(id.(string))
+
+		return string(objectId.Hex())
 	}
 }

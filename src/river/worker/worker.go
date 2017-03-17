@@ -60,7 +60,6 @@ func (w *Worker) InitialImport() {
 			"record": record,
 		}).Debug("Got collection record")
 
-
 		record["_id"] = w.objectIdString(record["_id"])
 
 		if err := w.elastic.Insert(record); err != nil {
@@ -76,17 +75,23 @@ func (w *Worker) InitialImport() {
 
 func (w *Worker) ListenOplog() {
 	var (
-		oplog schema.Oplog
+		oplog  schema.Oplog
+		lastTs int64 = w.elastic.GetLastTs()
 	)
 
-	logger.Instance().Info("Listening for MongoDB oplog.rs")
+	logger.Instance().WithFields(log.Fields{
+		"since": lastTs,
+	}).Info("Listening for MongoDB oplog.rs")
 
 	iterator := w.mongo.
 		GetSession().
 		DB("local").
 		C("oplog.rs").
-		Find(bson.M{"fromMigrate": bson.M{"$exists": false}, "ns": w.namespace, "ts" : bson.M{"$gte" : bson.MongoTimestamp(w.elastic.GetLastTs())}}).
-		Tail(-1)
+		Find(bson.M{
+			"fromMigrate": bson.M{"$exists": false},
+			"ns":          w.namespace,
+			"ts":          bson.M{"$gte": bson.MongoTimestamp(lastTs)},
+		}).Tail(-1)
 
 	for iterator.Next(&oplog) {
 		logger.Instance().WithFields(log.Fields{

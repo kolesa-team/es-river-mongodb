@@ -53,7 +53,7 @@ func NewElastic() *Elastic {
 	return &e
 }
 
-// Обработчик события вставки документа
+// Insert operation handler
 func (e *Elastic) Insert(data map[string]interface{}) error {
 	id := data["_id"].(string)
 
@@ -82,7 +82,7 @@ func (e *Elastic) Insert(data map[string]interface{}) error {
 	return nil
 }
 
-// Обработчик события обновления документа
+// Update operation handler
 func (e *Elastic) Update(id string, data map[string]interface{}) error {
 	body, err := schema.MarshalQueryObject(data)
 	if err != nil {
@@ -109,7 +109,7 @@ func (e *Elastic) Update(id string, data map[string]interface{}) error {
 	return nil
 }
 
-// Обработчик события удаления документа
+// Delete operation handler
 func (e *Elastic) Remove(id string) error {
 	obj, err := e.client.
 		Delete().
@@ -126,6 +126,46 @@ func (e *Elastic) Remove(id string) error {
 		"index": obj.Index,
 		"type":  obj.Type,
 	}).Debug("Deleted advert")
+
+	return nil
+}
+
+// Return last operation timestamp
+func (e *Elastic) GetLastTs() int64 {
+	if val := e.getSetting("last_ts"); val != nil {
+		return val.(int64)
+	}
+
+	return 0
+}
+
+// Sets last operation timestamp
+func (e *Elastic) SetLastTs(lastTs int64) error {
+	_, err := e.client.
+		Update().
+		Index(e.indexName).
+		Type("river").
+		Id("settings").
+		Doc(map[string]interface{}{"last_ts" : lastTs}).
+		Do()
+
+	return err
+}
+
+// Returns setting for key
+func (e *Elastic) getSetting(key string) interface{} {
+	obj, err := e.client.
+		Get().
+		Index(e.indexName).
+		Type("river").
+		Id("settings").
+		Do()
+
+	if err != nil {
+		if val, found := obj.Fields[key]; found {
+			return val
+		}
+	}
 
 	return nil
 }

@@ -24,7 +24,7 @@ func main() {
 
 	app.Name = "es-river-mongodb"
 	app.Usage = "Indexes MongoDB to Elasticsearch"
-	app.Version = "0.0.6"
+	app.Version = "0.0.7"
 	app.Author = "Igor Borodikhin"
 	app.Email = "iborodikhin@gmail.com"
 	app.Action = actionRun
@@ -52,7 +52,6 @@ func main() {
 	app.Run(os.Args)
 }
 
-// Главный обработчик, в котором происходит запуск демона
 func actionRun(c *cli.Context) {
 	isDaemon := c.Bool("daemon")
 	pidfile := c.String("pid")

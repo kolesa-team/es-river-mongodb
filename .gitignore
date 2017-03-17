@@ -4,3 +4,4 @@
 .go/
 data/config-dev.cfg
 out/*
+*.deb

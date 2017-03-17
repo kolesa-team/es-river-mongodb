@@ -19,7 +19,7 @@ type nullFormatter struct {
 
 func initLogger() {
 	once.Do(func() {
-		// Настройка логов
+		// Logging setup
 		logger = logrus.New()
 
 		addr, err := config.Instance().String("graylog", "addr")
@@ -37,7 +37,7 @@ func Instance() *logrus.Logger {
 	return logger
 }
 
-// Не шлем логи в stdout
+// Don't pass logs to stdout
 func (nullFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	return []byte{}, nil
 }

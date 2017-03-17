@@ -85,7 +85,7 @@ func (w *Worker) ListenOplog() {
 		GetSession().
 		DB("local").
 		C("oplog.rs").
-		Find(bson.M{"fromMigrate": bson.M{"$exists": false}, "ns": w.namespace}).
+		Find(bson.M{"fromMigrate": bson.M{"$exists": false}, "ns": w.namespace, "ts" : bson.M{"$gte" : bson.MongoTimestamp(w.elastic.GetLastTs())}}).
 		Tail(-1)
 
 	for iterator.Next(&oplog) {
@@ -98,6 +98,8 @@ func (w *Worker) ListenOplog() {
 				"record": oplog,
 				"error":  err,
 			}).Debug("An error occurred while processing MongoDB oplog record")
+		} else {
+			w.elastic.SetLastTs(int64(oplog.Timestamp))
 		}
 	}
 }

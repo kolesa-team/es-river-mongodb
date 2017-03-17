@@ -85,7 +85,7 @@ func (w *Worker) ListenOplog() {
 		GetSession().
 		DB("local").
 		C("oplog.rs").
-		Find(bson.M{"fromMigrate": bson.M{"$exists": false}}).
+		Find(bson.M{"fromMigrate": bson.M{"$exists": false}, "ns": w.namespace}).
 		Tail(-1)
 
 	for iterator.Next(&oplog) {
@@ -103,15 +103,6 @@ func (w *Worker) ListenOplog() {
 }
 
 func (w *Worker) processOplog(oplog schema.Oplog) error {
-	if w.namespace != oplog.Namespace {
-		logger.Instance().WithFields(log.Fields{
-			"expected": w.namespace,
-			"actual":   oplog.Namespace,
-		}).Debug("Unknown namespace")
-
-		return nil
-	}
-
 	switch oplog.Operation {
 	case OP_INSERT:
 		oplog.Object["_id"] = w.objectIdString(oplog.Object["_id"])

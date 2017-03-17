@@ -147,7 +147,14 @@ func (e *Elastic) SetLastTs(lastTs int64) error {
 		Type("river").
 		Id("settings").
 		Doc(map[string]interface{}{"last_ts" : lastTs}).
+		DocAsUpsert(true).
 		Do()
+
+	if err != nil {
+		logger.Instance().WithFields(log.Fields{
+			"error":  err,
+		}).Debug("An error occurred while saving last ts")
+	}
 
 	return err
 }

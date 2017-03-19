@@ -9,7 +9,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/endeveit/go-snippets/cli"
 	"github.com/endeveit/go-snippets/config"
-	"gopkg.in/olivere/elastic.v2"
+	"golang.org/x/net/context"
+	"gopkg.in/olivere/elastic.v5"
 )
 
 const (
@@ -47,7 +48,7 @@ func NewElastic() *Elastic {
 	e.client, err = elastic.NewClient(elastic.SetURL(strings.Split(elasticUrl, ";")...))
 	cli.CheckFatalError(err)
 
-	_, err = e.client.IndexExists(e.indexName).Do()
+	_, err = e.client.IndexExists(e.indexName).Do(context.Background())
 	cli.CheckFatalError(err)
 
 	return &e
@@ -68,7 +69,7 @@ func (e *Elastic) Insert(data map[string]interface{}) error {
 		Type(e.recordType).
 		Id(id).
 		BodyString(string(body)).
-		Do()
+		Do(context.Background())
 	if err != nil {
 		return err
 	}
@@ -95,7 +96,7 @@ func (e *Elastic) Update(id string, data map[string]interface{}) error {
 		Type(e.recordType).
 		Id(id).
 		BodyString(string(body)).
-		Do()
+		Do(context.Background())
 	if err != nil {
 		return err
 	}
@@ -116,7 +117,7 @@ func (e *Elastic) Remove(id string) error {
 		Index(e.indexName).
 		Type(e.recordType).
 		Id(id).
-		Do()
+		Do(context.Background())
 	if err != nil {
 		return err
 	}
@@ -146,13 +147,13 @@ func (e *Elastic) SetLastTs(lastTs int64) error {
 		Index(e.indexName).
 		Type("river").
 		Id("settings").
-		Doc(map[string]interface{}{"last_ts" : lastTs}).
+		Doc(map[string]interface{}{"last_ts": lastTs}).
 		DocAsUpsert(true).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		logger.Instance().WithFields(log.Fields{
-			"error":  err,
+			"error": err,
 		}).Debug("An error occurred while saving last ts")
 	}
 
@@ -166,7 +167,7 @@ func (e *Elastic) getSetting(key string) interface{} {
 		Index(e.indexName).
 		Type("river").
 		Id("settings").
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		if val, found := obj.Fields[key]; found {

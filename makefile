@@ -15,7 +15,7 @@ dep-install:
 	go get github.com/sevlyar/go-daemon
 	go get github.com/Sirupsen/logrus
 	go get labix.org/v2/mgo
-	go get gopkg.in/olivere/elastic.v2
+	go get gopkg.in/olivere/elastic.v5
 
 fmt:
 	gofmt -s=true -w $(CURDIR)/src

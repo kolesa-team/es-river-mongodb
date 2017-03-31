@@ -5,8 +5,9 @@ import (
 	"syscall"
 	"time"
 
+	c "./river/cluster"
+	"./river/worker"
 	"./river/logger"
-	w "./river/worker"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -24,7 +25,7 @@ func main() {
 
 	app.Name = "es-river-mongodb"
 	app.Usage = "Indexes MongoDB to Elasticsearch"
-	app.Version = "0.0.8"
+	app.Version = "0.0.9"
 	app.Author = "Igor Borodikhin"
 	app.Email = "iborodikhin@gmail.com"
 	app.Action = actionRun
@@ -108,15 +109,17 @@ func actionRun(c *cli.Context) {
 // Запуск сервера
 func runDaemon(pidfile string) {
 	logger.Instance().Info("Starting daemon")
+	w := worker.NewWorker()
 
-	worker := w.NewWorker()
-
-	skipInitImport, err := config.Instance().Bool("river", "skip_initial_import")
-	if err != nil || skipInitImport == false {
-		go worker.InitialImport()
+	if config.Instance().HasSection("cluster") {
+		logger.Instance().Info("Starting in cluster mode")
+		cluster := c.NewCluster(w)
+		cluster.Start()
+	} else {
+		logger.Instance().Warn("Config section «cluster» not found, starting in single node mode")
+		w.Do()
+		w.Start()
 	}
-
-	worker.ListenOplog()
 
 	done <- struct{}{}
 }

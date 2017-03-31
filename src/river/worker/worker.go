@@ -18,12 +18,19 @@ const (
 	OP_UPDATE string = "u"
 	OP_DELETE string = "d"
 	OP_NOOP   string = "n"
+
+	STATE_ACTIVE  = "active"
+	STATE_STOPPED = "stopped"
 )
 
 type Worker struct {
 	mongo                           *storage.MongoDB
 	elastic                         *storage.Elastic
+	skipInitImport                  bool
 	database, collection, namespace string
+	state                           string
+	isInitialImportActive           bool
+	isOplogImportActive             bool
 }
 
 func NewWorker() *Worker {
@@ -37,16 +44,56 @@ func NewWorker() *Worker {
 	w.collection, err = config.Instance().String("mongodb", "collection")
 	cli.CheckError(err)
 
+	w.skipInitImport, err = config.Instance().Bool("river", "skip_initial_import")
+	if err != nil {
+		w.skipInitImport = true
+	}
+
 	w.mongo = storage.NewMongoDB()
 	w.elastic = storage.NewElastic()
-
 	w.namespace = fmt.Sprintf("%s.%s", w.database, w.collection)
+	w.state = STATE_STOPPED
 
 	return &w
 }
 
-func (w *Worker) InitialImport() {
+func (w *Worker) Start() *Worker {
+	if !w.skipInitImport {
+		w.isInitialImportActive = true
+	}
+
+	w.isOplogImportActive = true
+	w.state = STATE_ACTIVE
+
+	return w
+}
+
+func (w *Worker) Stop() *Worker {
+	w.isInitialImportActive = false
+	w.isOplogImportActive = false
+	w.state = STATE_STOPPED
+
+	return w
+}
+
+func (w *Worker) Do() *Worker {
+	if !w.skipInitImport {
+		go w.initialImport()
+	}
+
+	go w.listenOplog()
+
+	return w
+}
+
+func (w *Worker) State() string {
+	return w.state
+}
+
+func (w *Worker) initialImport() {
 	var record map[string]interface{}
+
+	defer logger.Instance().Info("Initial import complete")
 
 	iterator := w.mongo.
 		GetSession().
@@ -55,7 +102,7 @@ func (w *Worker) InitialImport() {
 		Find(nil).
 		Iter()
 
-	for iterator.Next(&record) {
+	for w.isInitialImportActive && iterator.Next(&record) {
 		logger.Instance().WithFields(log.Fields{
 			"record": record,
 		}).Debug("Got collection record")
@@ -69,11 +116,9 @@ func (w *Worker) InitialImport() {
 			}).Debug("An error occurred while indexing MongoDB collection record")
 		}
 	}
-
-	logger.Instance().Info("Initial import complete")
 }
 
-func (w *Worker) ListenOplog() {
+func (w *Worker) listenOplog() {
 	var (
 		oplog  schema.Oplog
 		lastTs int64 = w.elastic.GetLastTs()
@@ -93,7 +138,7 @@ func (w *Worker) ListenOplog() {
 			"ts":          bson.M{"$gte": bson.MongoTimestamp(lastTs)},
 		}).Tail(-1)
 
-	for iterator.Next(&oplog) {
+	for w.isOplogImportActive && iterator.Next(&oplog) {
 		logger.Instance().WithFields(log.Fields{
 			"record": oplog,
 		}).Debug("Got oplog record")

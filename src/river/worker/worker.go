@@ -22,7 +22,8 @@ const (
 
 type Worker struct {
 	mongo                           *storage.MongoDB
-	elastic                         *storage.Elastic
+	elastic                         storage.IElastic
+	skipInitImport                  bool
 	database, collection, namespace string
 }
 
@@ -37,9 +38,13 @@ func NewWorker() *Worker {
 	w.collection, err = config.Instance().String("mongodb", "collection")
 	cli.CheckError(err)
 
+	w.skipInitImport, err = config.Instance().Bool("river", "skip_initial_import")
+	if err != nil {
+		w.skipInitImport = true
+	}
+
 	w.mongo = storage.NewMongoDB()
 	w.elastic = storage.NewElastic()
-
 	w.namespace = fmt.Sprintf("%s.%s", w.database, w.collection)
 
 	return &w

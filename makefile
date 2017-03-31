@@ -15,6 +15,8 @@ dep-install:
 	go get github.com/sevlyar/go-daemon
 	go get github.com/Sirupsen/logrus
 	go get labix.org/v2/mgo
+	go get gopkg.in/olivere/elastic.v2
+	go get gopkg.in/olivere/elastic.v3
 	go get gopkg.in/olivere/elastic.v5
 
 fmt:
@@ -24,7 +26,9 @@ run:
 	go run $(CURDIR)/src/main.go -b -c=$(CURDIR)/data/config.cfg
 	
 run-dev:
-	go run --race $(CURDIR)/src/main.go -b -c=$(CURDIR)/data/config-dev.cfg
+	rm $(CURDIR)/out/$(APP_NAME)
+	go build -o $(CURDIR)/out/$(APP_NAME) $(CURDIR)/src/main.go
+	$(CURDIR)/out/$(APP_NAME) -b -c=$(CURDIR)/data/config-dev.cfg
 
 keys:
 	openssl genrsa -out $(CURDIR)/out/rsakey 512

@@ -25,7 +25,7 @@ const (
 
 type Worker struct {
 	mongo                           *storage.MongoDB
-	elastic                         *storage.Elastic
+	elastic                         storage.IElastic
 	skipInitImport                  bool
 	database, collection, namespace string
 	state                           string

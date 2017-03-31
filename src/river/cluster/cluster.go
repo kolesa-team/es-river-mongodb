@@ -91,7 +91,8 @@ func (c *Cluster) handleId(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Cluster) handleRequestVote(w http.ResponseWriter, r *http.Request) {
-	term := uint64(r.FormValue("term"))
+	//term := uint64(r.FormValue("term"))
+	term := uint64(1)
 	vote := r.FormValue("vote")
 
 	if term < c.currentVote.term {

@@ -9,8 +9,9 @@ import (
 
 	"github.com/endeveit/go-snippets/cli"
 	"github.com/endeveit/go-snippets/config"
-	"net/http"
 	"io"
+	"net/http"
+	"strconv"
 )
 
 type Cluster struct {
@@ -35,9 +36,9 @@ type Vote struct {
 }
 
 const (
-	TYPE_LEADER = "leader"
+	TYPE_LEADER    = "leader"
 	TYPE_CANDIDATE = "candidate"
-	TYPE_FOLLOWER = "follower"
+	TYPE_FOLLOWER  = "follower"
 )
 
 func NewCluster(w *worker.Worker) *Cluster {
@@ -91,9 +92,11 @@ func (c *Cluster) handleId(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Cluster) handleRequestVote(w http.ResponseWriter, r *http.Request) {
-	//term := uint64(r.FormValue("term"))
-	term := uint64(1)
 	vote := r.FormValue("vote")
+	term, err := strconv.ParseUint(r.FormValue("term"), 10, 64)
+	if err != nil {
+		term = uint64(1)
+	}
 
 	if term < c.currentVote.term {
 
@@ -116,4 +119,30 @@ func (c *Cluster) handleRequestVote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.currentVote.vote = vote
+	// reset election timeout
+}
+
+func (c *Cluster) handleAppendNode(w http.ResponseWriter, r *http.Request) {
+	leader := r.FormValue("leader")
+	term, err := strconv.ParseUint(r.FormValue("term"), 10, 64)
+	if err != nil {
+		term = uint64(1)
+	}
+
+	if term < c.currentVote.term {
+
+	}
+
+	if term > c.currentVote.term {
+		c.currentVote.term = term
+		c.currentVote.vote = ""
+	}
+
+	if c.memberType == TYPE_CANDIDATE && c.leader != leader && term >= c.currentVote.term {
+		c.currentVote.term = term
+		c.currentVote.vote = ""
+	}
+
+	// reset election timeout
+
 }

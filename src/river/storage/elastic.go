@@ -1,9 +1,10 @@
 package storage
 
 import (
+	"fmt"
+
 	"github.com/endeveit/go-snippets/cli"
 	"github.com/endeveit/go-snippets/config"
-	"fmt"
 )
 
 const (

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	c "./river/cluster"
-	"./river/worker"
 	"./river/logger"
+	"./river/worker"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -109,17 +109,9 @@ func actionRun(c *cli.Context) {
 // Запуск сервера
 func runDaemon(pidfile string) {
 	logger.Instance().Info("Starting daemon")
-	w := worker.NewWorker()
 
-	if config.Instance().HasSection("cluster") {
-		logger.Instance().Info("Starting in cluster mode")
-		cluster := c.NewCluster(w)
-		cluster.Start()
-	} else {
-		logger.Instance().Warn("Config section «cluster» not found, starting in single node mode")
-		w.Do()
-		w.Start()
-	}
+	cluster := c.NewCluster(worker.NewWorker())
+	cluster.Start()
 
 	done <- struct{}{}
 }

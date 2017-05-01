@@ -18,6 +18,7 @@ dep-install:
 	go get gopkg.in/olivere/elastic.v2
 	go get gopkg.in/olivere/elastic.v3
 	go get gopkg.in/olivere/elastic.v5
+	go get github.com/coreos/etcd/raft/raftpb
 
 fmt:
 	gofmt -s=true -w $(CURDIR)/src

@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"time"
 
 	"../logger"
 	"../schema"
@@ -95,63 +96,98 @@ func (w *Worker) initialImport() {
 
 	defer logger.Instance().Info("Initial import complete")
 
-	iterator := w.mongo.
-		GetSession().
-		DB(w.database).
-		C(w.collection).
-		Find(nil).
-		Iter()
+	for {
+		if w.isInitialImportActive {
+			iterator := w.mongo.
+				GetSession().
+				DB(w.database).
+				C(w.collection).
+				Find(nil).
+				Iter()
 
-	for w.isInitialImportActive && iterator.Next(&record) {
-		logger.Instance().WithFields(log.Fields{
-			"record": record,
-		}).Debug("Got collection record")
+			for w.isInitialImportActive && iterator.Next(&record) {
+				logger.Instance().WithFields(log.Fields{
+					"record": record,
+				}).Debug("Got collection record")
 
-		record["_id"] = w.objectIdString(record["_id"])
+				record["_id"] = w.objectIdString(record["_id"])
 
-		if err := w.elastic.Insert(record); err != nil {
-			logger.Instance().WithFields(log.Fields{
-				"record": record,
-				"error":  err,
-			}).Debug("An error occurred while indexing MongoDB collection record")
+				if err := w.elastic.Insert(record); err != nil {
+					logger.Instance().WithFields(log.Fields{
+						"record": record,
+						"error":  err,
+					}).Debug("An error occurred while indexing MongoDB collection record")
+				}
+			}
 		}
+
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 
 func (w *Worker) listenOplog() {
 	var (
 		oplog  schema.Oplog
-		lastTs int64 = w.elastic.GetLastTs()
+		lastTs float64 = w.elastic.GetLastTs()
 	)
 
 	logger.Instance().WithFields(log.Fields{
 		"since": lastTs,
 	}).Info("Listening for MongoDB oplog.rs")
 
-	iterator := w.mongo.
-		GetSession().
-		DB("local").
-		C("oplog.rs").
-		Find(bson.M{
-			"fromMigrate": bson.M{"$exists": false},
-			"ns":          w.namespace,
-			"ts":          bson.M{"$gte": bson.MongoTimestamp(lastTs)},
-		}).Tail(-1)
+	for {
+		if w.isOplogImportActive {
+			iterator := w.mongo.
+				GetSession().
+				DB("local").
+				C("oplog.rs").
+				Find(bson.M{
+				"fromMigrate": bson.M{"$exists": false},
+				"ns":          w.namespace,
+				"ts":          bson.M{"$gte": bson.MongoTimestamp(lastTs)},
+			}).Tail(-1)
 
-	for w.isOplogImportActive && iterator.Next(&oplog) {
-		logger.Instance().WithFields(log.Fields{
-			"record": oplog,
-		}).Debug("Got oplog record")
+			for w.isOplogImportActive && iterator.Next(&oplog) {
+				logger.Instance().WithFields(log.Fields{
+					"record": oplog,
+				}).Debug("Got oplog record")
 
-		if err := w.processOplog(oplog); err != nil {
-			logger.Instance().WithFields(log.Fields{
-				"record": oplog,
-				"error":  err,
-			}).Debug("An error occurred while processing MongoDB oplog record")
+				if err := w.processOplog(oplog); err != nil {
+					logger.Instance().WithFields(log.Fields{
+						"record": oplog,
+						"error":  err,
+					}).Debug("An error occurred while processing MongoDB oplog record")
+				} else {
+					w.elastic.SetLastTs(float64(oplog.Timestamp))
+				}
+			}
+		}
+
+		time.Sleep(1 * time.Millisecond)
+	}
+}
+
+func (w *Worker) GetMasterInfo() (info schema.MasterInfo) {
+	if id := w.elastic.GetSetting("master_id"); id != nil {
+		info.Id = id.(string)
+	}
+
+	if s := w.elastic.GetSetting("master_since"); s != nil {
+		if since, err := time.Parse(time.RFC3339, s.(string)); err == nil {
+			info.Since = since
 		} else {
-			w.elastic.SetLastTs(int64(oplog.Timestamp))
+			info.Since = time.Time{}
 		}
 	}
+
+	return
+}
+
+func (w *Worker) SetMasterInfo(info schema.MasterInfo) (err error) {
+	w.elastic.SetSetting("master_id", info.Id)
+	w.elastic.SetSetting("master_since", info.Since.Format(time.RFC3339))
+
+	return nil
 }
 
 func (w *Worker) processOplog(oplog schema.Oplog) error {

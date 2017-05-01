@@ -1,70 +1,35 @@
 package cluster
 
 import (
-	"strings"
+	"crypto/sha1"
+	"fmt"
+	"math/rand"
+	"os"
 	"sync"
 	"time"
 
+	"../logger"
 	"../worker"
-
-	"github.com/endeveit/go-snippets/cli"
-	"github.com/endeveit/go-snippets/config"
-	"io"
-	"net/http"
-	"strconv"
 )
 
 type Cluster struct {
-	identity           string
-	leader             string
-	worker             *worker.Worker
-	once               sync.Once
-	port               string
-	neighbours         []string
-	pingInterval       time.Duration
-	pingTimeout        time.Duration
-	lastSuccessfulPing time.Time
-	pingFailsTimes     int
-	memberType         string
-	currentVote        Vote
-	mutex              sync.RWMutex
+	identity   string
+	worker     *worker.Worker
+	once       sync.Once
+	memberType string
+	mutex      sync.RWMutex
 }
-
-type Vote struct {
-	term uint64
-	vote string
-}
-
-const (
-	TYPE_LEADER    = "leader"
-	TYPE_CANDIDATE = "candidate"
-	TYPE_FOLLOWER  = "follower"
-)
 
 func NewCluster(w *worker.Worker) *Cluster {
 	c := Cluster{
-		worker: w,
+		worker:   w,
+		identity: Identity(),
 	}
 
 	return &c
 }
 
 func (c *Cluster) Start() {
-	c.once.Do(func() {
-		var (
-			err        error
-			neighbours string
-		)
-
-		c.port, err = config.Instance().String("cluster", "port")
-		cli.CheckError(err)
-
-		neighbours, err = config.Instance().String("cluster", "neighbours")
-		cli.CheckError(err)
-
-		c.neighbours = strings.Split(neighbours, ";")
-	})
-
 	c.worker.Do()
 
 	ch := c.Loop()
@@ -84,65 +49,41 @@ func (c *Cluster) Start() {
 func (c *Cluster) Loop() chan bool {
 	ch := make(chan bool)
 
+	// Sleep for random interval 100..300ms
+	time.Sleep(time.Duration(100+rand.Int63n(200)) * time.Millisecond)
+
+	go func(channel chan bool, t *time.Ticker) {
+		for range t.C {
+			master := c.worker.GetMasterInfo()
+
+			// Master info ttl is 10s, if it's outdated we're new master
+			if time.Since(master.Since) > 10*time.Second {
+				logger.Instance().Info("I am new master!")
+
+				master.Id = c.identity
+			}
+
+			// If we're master now write info to ES
+			if master.Id == c.identity {
+				master.Since = time.Now()
+
+				c.worker.SetMasterInfo(master)
+			}
+
+			channel <- master.Id == c.identity
+		}
+	}(ch, time.NewTicker(1*time.Second))
+
 	return ch
 }
 
-func (c *Cluster) handleId(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, c.identity)
-}
+func Identity() string {
+	hostname, err := os.Hostname()
+	h := sha1.New()
+	fmt.Fprint(h, hostname)
+	fmt.Fprint(h, err)
+	fmt.Fprint(h, os.Getpid())
+	fmt.Fprint(h, rand.Int())
 
-func (c *Cluster) handleRequestVote(w http.ResponseWriter, r *http.Request) {
-	vote := r.FormValue("vote")
-	term, err := strconv.ParseUint(r.FormValue("term"), 10, 64)
-	if err != nil {
-		term = uint64(1)
-	}
-
-	if term < c.currentVote.term {
-
-	}
-
-	stepDown := false
-	if term > c.currentVote.term {
-		c.currentVote.term = term
-		c.currentVote.vote = ""
-		c.leader = ""
-		stepDown = true
-	}
-
-	if c.memberType == TYPE_LEADER && !stepDown {
-
-	}
-
-	if c.currentVote.vote != "" && c.currentVote.vote != vote {
-
-	}
-
-	c.currentVote.vote = vote
-	// reset election timeout
-}
-
-func (c *Cluster) handleAppendNode(w http.ResponseWriter, r *http.Request) {
-	leader := r.FormValue("leader")
-	term, err := strconv.ParseUint(r.FormValue("term"), 10, 64)
-	if err != nil {
-		term = uint64(1)
-	}
-
-	if term < c.currentVote.term {
-
-	}
-
-	if term > c.currentVote.term {
-		c.currentVote.term = term
-		c.currentVote.vote = ""
-	}
-
-	if c.memberType == TYPE_CANDIDATE && c.leader != leader && term >= c.currentVote.term {
-		c.currentVote.term = term
-		c.currentVote.vote = ""
-	}
-
-	// reset election timeout
-
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

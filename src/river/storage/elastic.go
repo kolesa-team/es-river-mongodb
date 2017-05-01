@@ -18,9 +18,10 @@ type IElastic interface {
 	Insert(data map[string]interface{}) error
 	Update(id string, data map[string]interface{}) error
 	Remove(id string) error
-	GetLastTs() int64
-	SetLastTs(lastTs int64) error
+	GetLastTs() float64
+	SetLastTs(lastTs float64) error
 	GetSetting(key string) interface{}
+	SetSetting(key string, value interface{}) error
 }
 
 type Elastic struct {
